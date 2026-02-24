@@ -1,0 +1,122 @@
+# Finance AP: Invoice Exception Triage Workflow
+# AgentFlow Framework - Demo Workflow Specification
+
+name: finance_ap_invoice_triage
+description: >
+  Automated Finance Accounts Payable Invoice Exception Triage.
+  Detects invoice anomalies, classifies exceptions, routes for approval,
+  and updates ERP system.
+version: "1.0"
+author: AgentFlow Framework
+
+inputs:
+  - name: invoice_id
+    type: string
+    required: true
+    description: Unique invoice identifier
+  - name: vendor_name
+    type: string
+    required: true
+  - name: invoice_amount
+    type: float
+    required: true
+  - name: po_number
+    type: string
+    required: false
+  - name: invoice_date
+    type: string
+    required: true
+  - name: line_items
+    type: list
+    required: false
+    default: []
+
+steps:
+  - id: validate_invoice
+    name: Validate Invoice Data
+    agent: supervisor
+    task: >
+      Validate invoice {invoice_id} from vendor {vendor_name} for amount
+      ${invoice_amount} dated {invoice_date}. Check for missing PO number,
+      duplicate invoice detection, and data completeness. Return validation
+      status and any issues found.
+    required_approval: false
+    on_failure: stop
+
+  - id: detect_anomalies
+    name: Detect Invoice Anomalies
+    agent: supervisor
+    task: >
+      Analyze invoice {invoice_id} for anomalies: amount variance from PO
+      {po_number} if available, duplicate check, vendor {vendor_name}
+      payment history, and suspicious patterns. Classify exception type:
+      DUPLICATE, AMOUNT_MISMATCH, MISSING_PO, VENDOR_ISSUE, or CLEAN.
+    depends_on: [validate_invoice]
+    required_approval: false
+    on_failure: continue
+
+  - id: classify_priority
+    name: Classify Exception Priority
+    agent: supervisor
+    task: >
+      Based on anomaly detection results for invoice {invoice_id} with amount
+      ${invoice_amount}, classify priority as HIGH (>$50000 or DUPLICATE),
+      MEDIUM ($10000-$50000 or AMOUNT_MISMATCH), or LOW (<$10000 or MISSING_PO).
+      Return priority level and recommended action.
+    depends_on: [detect_anomalies]
+    required_approval: false
+
+  - id: route_for_approval
+    name: Route for Human Approval
+    agent: supervisor
+    task: >
+      Invoice {invoice_id} has been classified. If priority is HIGH, create
+      approval request for Finance Manager. If MEDIUM, route to AP Supervisor.
+      If LOW and CLEAN, auto-approve and proceed. Return routing decision
+      and approver details.
+    depends_on: [classify_priority]
+    required_approval: true
+    approval_condition: "priority == 'HIGH' or priority == 'MEDIUM'"
+    approval_timeout: 86400
+
+  - id: update_erp
+    name: Update ERP System
+    agent: supervisor
+    task: >
+      Update ERP system for invoice {invoice_id}: set status based on
+      approval decision, update GL coding, set payment terms, and trigger
+      payment schedule if approved. Log all actions taken.
+    depends_on: [route_for_approval]
+    required_approval: false
+    on_failure: retry
+    retry_count: 3
+
+  - id: send_notifications
+    name: Send Stakeholder Notifications
+    agent: supervisor
+    task: >
+      Send notifications for invoice {invoice_id} to relevant stakeholders:
+      vendor {vendor_name} for status update, internal AP team for tracking,
+      and requestor if PO {po_number} exists. Include exception summary and
+      resolution actions taken.
+    depends_on: [update_erp]
+    required_approval: false
+
+outputs:
+  - name: triage_status
+    description: Final triage outcome (APPROVED/REJECTED/PENDING/ESCALATED)
+  - name: exception_type
+    description: Classified exception category
+  - name: priority
+    description: Priority level (HIGH/MEDIUM/LOW)
+  - name: approval_id
+    description: Approval request ID if human review required
+  - name: erp_update_status
+    description: ERP system update confirmation
+
+metadata:
+  department: Finance
+  process: Accounts_Payable
+  compliance: SOX
+  sla_hours: 24
+  escalation_threshold: 50000
