@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import Any, Dict, Optional
 
 from agentflow.workflow.spec import WorkflowSpec
-from agentflow.workflow.state import WorkflowEngine
+from agentflow.core.engine import WorkflowEngine
 from agentflow.observability.logger import get_logger
 
 router = APIRouter()

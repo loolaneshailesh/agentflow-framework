@@ -50,3 +50,8 @@ class BaseTool(ABC):
             args_schema=InputModel,
             coroutine=_run,
         )
+
+
+# Aliases for backward compatibility
+AgentFlowTool = BaseTool
+ToolSpec = ToolSchema

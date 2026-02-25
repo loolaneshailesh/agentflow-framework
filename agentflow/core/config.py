@@ -6,6 +6,7 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # Database
@@ -27,7 +28,7 @@ class Settings(BaseSettings):
     azure_openai_endpoint: Optional[str] = None
     azure_openai_deployment: Optional[str] = None
 
-    # Local
+    # Local LLM
     ollama_base_url: str = "http://localhost:11434"
     vllm_base_url: str = "http://localhost:8000"
     active_llm_model: Optional[str] = None
@@ -38,6 +39,12 @@ class Settings(BaseSettings):
     secret_key: str = "change-me"
     cors_origins: str = "http://localhost:5173"
 
+    # Logging
+    json_logs: bool = False
+
+    # LLM model shortcut
+    llm_model: str = "gpt-4o"
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",")]
@@ -46,3 +53,7 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+
+# Module-level singleton for direct import
+settings = get_settings()

@@ -1,6 +1,6 @@
 """Health check endpoints."""
 from fastapi import APIRouter
-from agentflow.llm.gateway import LLMGateway
+from agentflow.llm.gateway import ModelGateway
 from agentflow.tools.registry import registry
 
 router = APIRouter()
@@ -15,7 +15,7 @@ async def health_check():
 @router.get("/health/detail")
 async def detailed_health():
     """Detailed health including LLM and tool registry status."""
-    gateway = LLMGateway()
+    gateway = ModelGateway()
     return {
         "status": "ok",
         "active_model": gateway.active_model,

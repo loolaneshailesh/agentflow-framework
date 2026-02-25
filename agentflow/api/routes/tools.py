@@ -4,12 +4,12 @@ from pydantic import BaseModel
 from typing import Any, Dict, Optional
 
 from agentflow.tools.registry import registry
-from agentflow.tools.executor import ToolExecutor
+from agentflow.tools.executor import SafeToolExecutor
 from agentflow.observability.logger import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)
-executor = ToolExecutor(registry)
+executor = SafeToolExecutor(registry)
 
 
 class ToolCallRequest(BaseModel):

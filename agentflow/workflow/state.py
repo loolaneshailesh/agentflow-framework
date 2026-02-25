@@ -24,3 +24,11 @@ class WorkflowState(TypedDict):
     audit_events: list[dict]
     error: Optional[str]
     metadata: dict[str, Any]
+
+
+# Alias for backward compatibility
+from agentflow.core.engine import WorkflowEngine
+
+
+# Alias - WorkflowEngine lives in core.engine
+from agentflow.core.engine import WorkflowEngine

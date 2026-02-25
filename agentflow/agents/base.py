@@ -1,7 +1,7 @@
 """Base agent abstract class for AgentFlow Framework."""
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
-from agentflow.llm.gateway import LLMGateway
+from agentflow.llm.gateway import ModelGateway
 from agentflow.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -14,11 +14,11 @@ class BaseAgent(ABC):
         self,
         name: str,
         description: str,
-        gateway: Optional[LLMGateway] = None,
+        gateway: Optional[ModelGateway] = None,
     ):
         self.name = name
         self.description = description
-        self._gateway = gateway or LLMGateway()
+        self._gateway = gateway or ModelGateway()
         logger.info("agent_init", agent=name, model=self._gateway.active_model)
 
     @abstractmethod
