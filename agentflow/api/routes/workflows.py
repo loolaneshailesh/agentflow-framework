@@ -1,51 +1,42 @@
-"""Workflow execution API routes."""
-import yaml
-import os
+"""Workflow management API routes."""
+from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Any, Dict, Optional
-
-from agentflow.workflow.spec import WorkflowSpec
-from agentflow.core.engine import WorkflowEngine
+from agentflow.tools.registry import get_registry
 from agentflow.observability.logger import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)
+registry = get_registry()
+_workflows: dict = {}
 
 
-class WorkflowRunRequest(BaseModel):
-    workflow_name: str
-    inputs: Dict[str, Any] = {}
+class WorkflowCreateRequest(BaseModel):
+    name: str
+    steps: list = []
+    config: Optional[Dict[str, Any]] = {}
 
 
-@router.get("/")
+@router.get('/')
 async def list_workflows():
-    """List available workflow YAML files."""
-    workflows_dir = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "workflows"
-    )
-    if not os.path.exists(workflows_dir):
-        return {"workflows": []}
-    files = [f.replace(".yaml", "") for f in os.listdir(workflows_dir) if f.endswith(".yaml")]
-    return {"workflows": files}
+    return {'workflows': list(_workflows.values())}
 
 
-@router.post("/run")
-async def run_workflow(request: WorkflowRunRequest):
-    """Load and execute a workflow by name."""
-    workflows_dir = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "workflows"
-    )
-    workflow_file = os.path.join(workflows_dir, f"{request.workflow_name}.yaml")
-    if not os.path.exists(workflow_file):
-        raise HTTPException(status_code=404, detail=f"Workflow '{request.workflow_name}' not found")
-    try:
-        with open(workflow_file) as f:
-            spec_data = yaml.safe_load(f)
-        spec = WorkflowSpec(**spec_data)
-        engine = WorkflowEngine(spec)
-        result = await engine.run(request.inputs)
-        return {"workflow": request.workflow_name, "result": result}
-    except Exception as e:
-        logger.error("workflow_run_error", workflow=request.workflow_name, error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+@router.post('/')
+async def create_workflow(request: WorkflowCreateRequest):
+    workflow = {
+        'name': request.name,
+        'steps': request.steps,
+        'config': request.config,
+        'status': 'created',
+    }
+    _workflows[request.name] = workflow
+    logger.info('workflow_created', name=request.name)
+    return {'workflow': workflow}
+
+
+@router.get('/{workflow_name}')
+async def get_workflow(workflow_name: str):
+    if workflow_name not in _workflows:
+        raise HTTPException(status_code=404, detail=f'Workflow not found: {workflow_name}')
+    return {'workflow': _workflows[workflow_name]}

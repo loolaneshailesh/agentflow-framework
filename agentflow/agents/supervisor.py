@@ -1,66 +1,52 @@
-"""SupervisorAgent using LangGraph + LangChain ReAct pattern."""
+﻿# agentflow/agents/supervisor.py
 from __future__ import annotations
-from typing import Optional
-from langchain_core.messages import HumanMessage
-from langgraph.prebuilt import create_react_agent
-from agentflow.llm.gateway import get_gateway
-from agentflow.tools.registry import registry
-import structlog
 
-logger = structlog.get_logger(__name__)
+import logging
+from typing import Any, Dict, List, Optional
 
+from agentflow.tools.registry import get_registry
+from agentflow.core.state import WorkflowState, WorkflowStatus
 
-class BaseAgent:
-    name: str = "base"
-    description: str = "Base agent"
-
-    async def run(self, task: str, context: dict = {}) -> str:
-        raise NotImplementedError
+logger = logging.getLogger(__name__)
 
 
-class SupervisorAgent(BaseAgent):
-    """
-    Routes tasks to registered sub-agents/tools using ReAct pattern.
-    Can itself be registered as a tool in a higher-level supervisor.
-    """
+class SupervisorAgent:
+    """Supervises and coordinates other agents and tools."""
 
-    name = "supervisor"
-    description = "Top-level supervisor that routes tasks to specialized agents and tools."
+    def __init__(self, name: str = "supervisor"):
+        self.name = name
+        self.registry = get_registry()
+        self.agents: Dict[str, Any] = {}
+        logger.info(f"SupervisorAgent '{self.name}' initialized")
 
-    def __init__(
-        self,
-        tool_names: Optional[list[str]] = None,
-        model: Optional[str] = None,
-        system_prompt: Optional[str] = None,
-    ):
-        self._gateway = get_gateway(model)
-        self._tool_names = tool_names
-        self._system_prompt = system_prompt or (
-            "You are a supervisor agent. Analyze the task and route it to the most "
-            "appropriate tool or sub-agent. Always explain your reasoning."
-        )
-        self._agent = None
+    def register_agent(self, name: str, agent: Any) -> None:
+        self.agents[name] = agent
+        logger.info(f"Registered agent: {name}")
 
-    def _build_agent(self):
-        from langchain_litellm import ChatLiteLLM
-        lc_tools = registry.as_langchain_tools(self._tool_names)
-        llm = ChatLiteLLM(model=self._gateway.active_model)
-        self._agent = create_react_agent(
-            model=llm,
-            tools=lc_tools,
-            state_modifier=self._system_prompt,
-        )
+    def list_agents(self) -> List[str]:
+        return list(self.agents.keys())
 
-    async def run(self, task: str, context: dict = {}) -> str:
-        if self._agent is None:
-            self._build_agent()
-        messages = [HumanMessage(content=task)]
-        result = await self._agent.ainvoke({"messages": messages})
-        final = result["messages"][-1].content
-        logger.info("supervisor_result", task=task[:80], result_len=len(final))
-        return final
+    def run(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """Run a task through the supervisor."""
+        state = WorkflowState()
+        state.status = WorkflowStatus.RUNNING
+        logger.info(f"SupervisorAgent running task: {task}")
 
-    def as_tool(self):
-        """Register this supervisor as a tool for a higher-level supervisor."""
-        registry.register_agent_as_tool(self)
-        return self
+        try:
+            for k, v in task.items():
+                state.update_context(k, v)
+            state.status = WorkflowStatus.COMPLETED
+            state.result = {
+                "message": "Task completed by supervisor",
+                "task": task,
+                "agents_available": self.list_agents(),
+                "tools_available": self.registry.list_tools(),
+            }
+        except Exception as e:
+            state.mark_step_failed("supervisor_run", str(e))
+            logger.error(f"Supervisor task failed: {e}")
+
+        return state.to_dict()
+
+    def __repr__(self) -> str:
+        return f"SupervisorAgent(name={self.name!r}, agents={self.list_agents()})"

@@ -1,57 +1,27 @@
-"""BaseTool ABC - all tools inherit from this."""
+﻿# agentflow/tools/base.py
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Any
-from pydantic import BaseModel
-
-
-class ToolSchema(BaseModel):
-    name: str
-    description: str
-    input_schema: dict
-    output_schema: dict
-    tags: list[str] = []
-    timeout_seconds: int = 30
-    requires_approval: bool = False
+from typing import Any, Dict, Optional
 
 
 class BaseTool(ABC):
-    """SOLID-compliant base tool. Subclass and implement execute."""
+    """Abstract base class for all AgentFlow tools."""
 
-    @property
-    @abstractmethod
-    def schema(self) -> ToolSchema:
-        ...
+    name: str = ""
+    description: str = ""
 
     @abstractmethod
-    async def execute(self, inputs: dict[str, Any]) -> dict[str, Any]:
-        ...
+    def _run(self, **kwargs: Any) -> Any:
+        raise NotImplementedError
 
-    @property
-    def name(self) -> str:
-        return self.schema.name
+    def run(self, inputs: Any) -> Any:
+        if isinstance(inputs, dict):
+            return self._run(**inputs)
+        return self._run(input=inputs)
 
-    def to_langchain_tool(self):
-        """Wrap as a LangChain StructuredTool for agent binding."""
-        from langchain_core.tools import StructuredTool
-        from pydantic import create_model
-
-        fields = {
-            k: (str, ...) for k in self.schema.input_schema.get("properties", {})
-        }
-        InputModel = create_model(f"{self.name}Input", **fields)
-
-        async def _run(**kwargs):
-            return await self.execute(kwargs)
-
-        return StructuredTool(
-            name=self.name,
-            description=self.schema.description,
-            args_schema=InputModel,
-            coroutine=_run,
-        )
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(name={self.name!r})"
 
 
-# Aliases for backward compatibility
 AgentFlowTool = BaseTool
-ToolSpec = ToolSchema

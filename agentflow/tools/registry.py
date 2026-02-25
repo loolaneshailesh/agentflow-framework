@@ -1,130 +1,90 @@
-"""DynamicToolRegistry - register, discover, and execute tools."""
+# agentflow/tools/registry.py
 from __future__ import annotations
-from typing import Type, Optional, Callable, Union
-from agentflow.tools.base import BaseTool, ToolSchema
-import structlog
 
-logger = structlog.get_logger(__name__)
+import inspect
+import logging
+from typing import Any, Callable, Dict, List, Optional, Union
+
+logger = logging.getLogger(__name__)
 
 
-class DynamicToolRegistry:
-    """Singleton registry. Tools self-register at import time."""
-
-    _instance: Optional["DynamicToolRegistry"] = None
+class ToolRegistry:
+    """Central registry for discovering and invoking tools."""
 
     def __init__(self):
-        self._tools: dict[str, object] = {}
+        self._tools: Dict[str, Any] = {}
 
-    @classmethod
-    def get_instance(cls) -> "DynamicToolRegistry":
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
+    def register(self, tool: Any, name: Optional[str] = None) -> None:
+        """Register a tool. Accepts BaseTool instances, LangChain tools, or plain callables."""
+        if callable(tool) and not hasattr(tool, "name"):
+            tool_name = name or getattr(tool, "__name__", None)
+            if not tool_name:
+                raise ValueError("A name must be provided for callable tools without __name__")
+            self._tools[tool_name] = tool
+            logger.info(f"Registered callable tool: {tool_name}")
+            return
 
-    def register(self, tool) -> None:
-        """Accept BaseTool, LangChain StructuredTool, or plain function."""
-        if isinstance(tool, BaseTool):
-            # Native AgentFlow BaseTool
-            name = tool.name
-            tags = tool.schema.tags
-        elif hasattr(tool, 'name') and isinstance(getattr(tool, 'name', None), str):
-            # LangChain StructuredTool or any object with a .name string attribute
-            name = tool.name
-            tags = getattr(tool, 'tags', []) or []
-        elif callable(tool):
-            # Plain Python function
-            name = getattr(tool, '__name__', repr(tool))
-            tags = []
-        else:
-            # Fallback - store it anyway
-            name = repr(tool)
-            tags = []
-        self._tools[name] = tool
-        logger.info("tool_registered", tool=name, tags=tags)
+        if hasattr(tool, "name"):
+            tool_name = name or tool.name
+            if not tool_name:
+                raise ValueError("Tool has no name. Provide one explicitly.")
+            self._tools[tool_name] = tool
+            logger.info(f"Registered tool: {tool_name}")
+            return
 
-    def register_class(self, tool_cls: Type[BaseTool]) -> None:
-        self.register(tool_cls())
+        raise TypeError(f"Cannot register object of type {type(tool)}. "
+                        "Must be a callable, BaseTool, or LangChain StructuredTool.")
 
-    def get(self, name: str) -> object:
+    def unregister(self, name: str) -> None:
         if name not in self._tools:
-            raise KeyError(
-                f"Tool '{name}' not found. Available: {list(self._tools)}"
-            )
+            raise KeyError(f"Tool '{name}' not found in registry.")
+        del self._tools[name]
+        logger.info(f"Unregistered tool: {name}")
+
+    def get(self, name: str) -> Any:
+        if name not in self._tools:
+            raise KeyError(f"Tool '{name}' not found in registry.")
         return self._tools[name]
 
-    def list_all(self) -> list:
-        result = []
-        for t in self._tools.values():
-            if isinstance(t, BaseTool):
-                result.append(t.schema)
-            elif hasattr(t, 'name'):
-                result.append({"name": t.name})
-            else:
-                result.append({"name": getattr(t, '__name__', str(t))})
-        return result
-
-    def list_agents(self) -> list[str]:
+    def list_tools(self) -> List[str]:
         return list(self._tools.keys())
 
-    async def execute(self, name: str, inputs: dict) -> dict:
+    def invoke(self, name: str, inputs: Dict[str, Any]) -> Any:
         tool = self.get(name)
-        if isinstance(tool, BaseTool):
-            from agentflow.tools.executor import SafeToolExecutor
-            return await SafeToolExecutor().run(tool, inputs)
-        elif hasattr(tool, 'arun'):
-            # LangChain StructuredTool
-            result = await tool.arun(inputs)
-            return {"result": result}
-        elif hasattr(tool, 'run'):
-            # LangChain sync tool
-            result = tool.run(inputs)
-            return {"result": result}
-        elif callable(tool):
-            import inspect
-            if inspect.iscoroutinefunction(tool):
-                return await tool(**inputs)
-            else:
+        try:
+            if callable(tool) and not hasattr(tool, "run") and not hasattr(tool, "_run"):
+                sig = inspect.signature(tool)
+                params = list(sig.parameters.keys())
+                if len(params) == 1:
+                        return tool(inputs)
                 return tool(**inputs)
-        raise TypeError(f"Tool '{name}' is not executable")
 
-    def as_langchain_tools(self, names: Optional[list[str]] = None):
-        targets = names or list(self._tools)
-        result = []
-        for n in targets:
-            if n not in self._tools:
-                continue
-            t = self._tools[n]
-            if isinstance(t, BaseTool):
-                result.append(t.to_langchain_tool())
-            elif hasattr(t, 'run') or hasattr(t, 'arun'):
-                # Already a LangChain tool
-                result.append(t)
-        return result
+            if hasattr(tool, "run"):
+                return tool.run(inputs)
 
-    def register_agent_as_tool(self, agent) -> None:
-        from agentflow.tools.base import ToolSchema
+            if hasattr(tool, "_run"):
+                return tool._run(**inputs)
 
-        class AgentTool(BaseTool):
-            @property
-            def schema(self_inner) -> ToolSchema:
-                return ToolSchema(
-                    name=agent.name,
-                    description=agent.description,
-                    input_schema={
-                        "properties": {"task": {"type": "string"}},
-                        "required": ["task"]
-                    },
-                    output_schema={
-                        "properties": {"result": {"type": "string"}}
-                    },
-                    tags=["agent"],
-                )
+            raise TypeError(f"Tool '{name}' has no callable interface.")
+        except Exception as e:
+            logger.error(f"Error invoking tool '{name}': {e}")
+            raise
 
-            async def execute(self_inner, inputs: dict) -> dict:
-                result = await agent.run(inputs["task"])
-                return {"result": result}
+    def __contains__(self, name: str) -> bool:
+        return name in self._tools
 
-        self.register(AgentTool())
+    def __len__(self) -> int:
+        return len(self._tools)
+
+    def __repr__(self) -> str:
+        return f"ToolRegistry(tools={self.list_tools()})"
 
 
-registry = DynamicToolRegistry.get_instance()
+_registry: Optional[ToolRegistry] = None
+
+
+def get_registry() -> ToolRegistry:
+    global _registry
+    if _registry is None:
+        _registry = ToolRegistry()
+    return _registry

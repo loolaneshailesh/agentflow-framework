@@ -1,25 +1,29 @@
-"""Health check endpoints."""
+"""Health check API routes."""
 from fastapi import APIRouter
-from agentflow.llm.gateway import ModelGateway
-from agentflow.tools.registry import registry
+from agentflow.core.config import settings
 
 router = APIRouter()
 
 
-@router.get("/health")
-async def health_check():
-    """Basic health check."""
-    return {"status": "ok", "service": "agentflow-framework"}
-
-
-@router.get("/health/detail")
-async def detailed_health():
-    """Detailed health including LLM and tool registry status."""
-    gateway = ModelGateway()
+@router.get('/health')
+def health():
     return {
-        "status": "ok",
-        "active_model": gateway.active_model,
-        "provider": gateway.provider,
-        "registered_tools": registry.list_tools(),
-        "registered_agents": registry.list_agents(),
+        'status': 'ok',
+        'version': getattr(settings, 'appversion', '1.0.0'),
+        'name': getattr(settings, 'appname', 'AgentFlow Framework'),
+    }
+
+
+@router.get('/health/detail')
+def detailed_health():
+    return {
+        'status': 'ok',
+        'version': getattr(settings, 'appversion', '1.0.0'),
+        'name': getattr(settings, 'appname', 'AgentFlow Framework'),
+        'debug': getattr(settings, 'debug', False),
+        'checks': {
+            'database': 'unknown',
+            'llm_gateway': 'unknown',
+            'memory': 'enabled' if getattr(settings, 'enablememory', True) else 'disabled',
+        },
     }

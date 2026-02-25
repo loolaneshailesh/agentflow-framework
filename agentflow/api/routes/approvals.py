@@ -1,50 +1,59 @@
-"""Human-in-the-loop approval API routes."""
+"""Approvals management API routes."""
+from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
-
-from agentflow.store.approval import approval_queue
 from agentflow.observability.logger import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)
+_approvals: dict = {}
+_counter = 0
+
+
+class ApprovalRequest(BaseModel):
+    invoice_id: str
+    amount: float
+    vendor: str
+    reason: Optional[str] = ''
+    metadata: Optional[Dict[str, Any]] = {}
 
 
 class ApprovalDecision(BaseModel):
-    comment: Optional[str] = ""
+    decision: str
+    notes: Optional[str] = ''
 
 
-class RejectionDecision(BaseModel):
-    reason: Optional[str] = ""
-
-
-@router.get("/")
+@router.get('/')
 async def list_approvals():
-    """List all approval requests."""
-    return {"approvals": approval_queue.list_all()}
+    return {'approvals': list(_approvals.values())}
 
 
-@router.get("/pending")
-async def list_pending_approvals():
-    """List pending approval requests."""
-    return {"approvals": approval_queue.list_pending()}
+@router.post('/')
+async def create_approval(request: ApprovalRequest):
+    global _counter
+    _counter += 1
+    approval_id = f'APR-{_counter:04d}'
+    approval = {
+        'id': approval_id,
+        'invoice_id': request.invoice_id,
+        'amount': request.amount,
+        'vendor': request.vendor,
+        'reason': request.reason,
+        'status': 'pending',
+        'metadata': request.metadata,
+    }
+    _approvals[approval_id] = approval
+    logger.info('approval_created', approval_id=approval_id)
+    return {'approval': approval}
 
 
-@router.post("/{request_id}/approve")
-async def approve_request(request_id: str, decision: ApprovalDecision):
-    """Approve a pending request."""
-    req = approval_queue.get(request_id)
-    if not req:
-        raise HTTPException(status_code=404, detail="Approval request not found")
-    req.approve(decision.comment)
-    return {"status": "approved", "request_id": request_id}
-
-
-@router.post("/{request_id}/reject")
-async def reject_request(request_id: str, decision: RejectionDecision):
-    """Reject a pending request."""
-    req = approval_queue.get(request_id)
-    if not req:
-        raise HTTPException(status_code=404, detail="Approval request not found")
-    req.reject(decision.reason)
-    return {"status": "rejected", "request_id": request_id}
+@router.post('/{approval_id}/decide')
+async def decide_approval(approval_id: str, decision: ApprovalDecision):
+    if approval_id not in _approvals:
+        raise HTTPException(status_code=404, detail=f'Approval not found: {approval_id}')
+    if decision.decision not in ('approve', 'reject'):
+        raise HTTPException(status_code=400, detail='decision must be approve or reject')
+    _approvals[approval_id]['status'] = decision.decision + 'd'
+    _approvals[approval_id]['notes'] = decision.notes
+    logger.info('approval_decided', approval_id=approval_id, decision=decision.decision)
+    return {'approval': _approvals[approval_id]}
