@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     azure_openai_deployment: Optional[str] = None
 
     # Default LLM - Grok via Groq
-    active_llm_model: str = "groq/llama3-70b-8192"
+    active_llm_model: str = "groq/llama-3.1-8b-instant"
     llm_temperature: float = 0.0
     llm_max_tokens: int = 4096
 
