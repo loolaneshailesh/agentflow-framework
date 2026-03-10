@@ -7,87 +7,156 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/reactflow@11/dist/umd/index.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11/dist/style.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f8fafc; overflow: hidden; }
         .app-container { display: flex; height: 100vh; }
         .sidebar { width: 260px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; }
-        .nav-item { padding: 12px 20px; cursor: pointer; color: #94a3b8; display: flex; align-items: center; gap: 12px; }
+        .sidebar-header { padding: 20px; font-size: 22px; font-weight: bold; color: #3b82f6; border-bottom: 1px solid #334155; }
+        .nav-item { padding: 12px 20px; cursor: pointer; color: #94a3b8; display: flex; align-items: center; gap: 12px; transition: 0.2s; }
+        .nav-item:hover { background: #334155; color: white; }
         .nav-item.active { background: #2563eb; color: white; }
-        .main-content { flex: 1; display: flex; flex-direction: column; }
+        .main-content { flex: 1; display: flex; flex-direction: column; background: #0f172a; }
         .top-bar { height: 60px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
-        .chat-view { flex: 1; display: flex; flex-direction: column; max-width: 800px; margin: 0 auto; width: 100%; padding: 20px; overflow-y: auto; }
-        .message { padding: 12px 16px; border-radius: 12px; margin-bottom: 10px; max-width: 80%; }
-        .message.user { background: #334155; align-self: flex-end; }
-        .message.assistant { background: #2563eb; align-self: flex-start; }
-        .canvas-container { flex: 1; position: relative; }
-        .btn { padding: 8px 16px; border-radius: 6px; cursor: pointer; border: none; font-weight: 500; }
+        .content-area { flex: 1; overflow-y: auto; padding: 24px; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .btn { padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500; }
         .btn-primary { background: #2563eb; color: white; }
+        .btn-danger { background: #dc2626; color: white; }
+        .input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; margin-top: 5px; }
+        .chat-view { height: 100%; display: flex; flex-direction: column; max-width: 900px; margin: 0 auto; width: 100%; }
+        .messages { flex: 1; overflow-y: auto; padding: 20px; }
+        .message { padding: 12px 16px; border-radius: 12px; margin-bottom: 12px; max-width: 80%; line-height: 1.5; }
+        .message.user { background: #334155; align-self: flex-end; margin-left: auto; }
+        .message.assistant { background: #2563eb; align-self: flex-start; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
+        .table th { color: #94a3b8; font-weight: 600; }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useCallback } = React;
-        const { ReactFlow, ReactFlowProvider, addEdge, Background, Controls, MiniMap, useNodesState, useEdgesState } = ReactFlowInstance;
+        const { useState, useEffect } = React;
+        const API_BASE = 'http://localhost:8000/api';
+
         const App = () => {
             const [view, setView] = useState('chat');
-            const [messages, setMessages] = useState([{role:'assistant', content:'Hello Shailesh! How can I help?'}]);
+            const [agents, setAgents] = useState([]);
+            const [workflows, setWorkflows] = useState([]);
+            const [approvals, setApprovals] = useState([]);
+
+            const fetchData = async () => {
+                try {
+                    const [a, w, p] = await Promise.all([
+                        fetch(`${API_BASE}/agents/`).then(res => res.json()),
+                        fetch(`${API_BASE}/workflows/`).then(res => res.json()),
+                        fetch(`${API_BASE}/approvals/`).then(res => res.json())
+                    ]);
+                    setAgents(a.agents || []);
+                    setWorkflows(w.workflows || []);
+                    setApprovals(p.approvals || []);
+                } catch (e) { console.error(e); }
+            };
+
+            useEffect(() => { fetchData(); }, [view]);
+
+            return (
+                <div className="app-container">
+                    <div className="sidebar">
+                        <div className="sidebar-header">AgentFlow Pro</div>
+                        <div className={`nav-item ${view==='chat'?'active':''}`} onClick={()=>setView('chat')}>💬 Chat</div>
+                        <div className={`nav-item ${view==='agents'?'active':''}`} onClick={()=>setView('agents')}>🤖 Agents</div>
+                        <div className={`nav-item ${view==='workflows'?'active':''}`} onClick={()=>setView('workflows')}>⚡ Workflows</div>
+                        <div className={`nav-item ${view==='approvals'?'active':''}`} onClick={()=>setView('approvals')}>✅ Approvals</div>
+                    </div>
+                    <div className="main-content">
+                        <div className="top-bar">
+                            <span>User: <b>Shailesh</b></span>
+                            <button className="btn btn-primary" onClick={fetchData}>Refresh Data</button>
+                        </div>
+                        <div className="content-area">
+                            {view === 'chat' && <ChatView />}
+                            {view === 'agents' && <ListView title="Agents" items={agents} type="agent" />}
+                            {view === 'workflows' && <ListView title="Workflows" items={workflows} type="workflow" />}
+                            {view === 'approvals' && <ListView title="Pending Approvals" items={approvals.filter(a => a.status === 'pending')} type="approval" onAction={fetchData} />}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ChatView = () => {
+            const [messages, setMessages] = useState([{role:'assistant', content:'Hello! How can I help you today?'}]);
             const [input, setInput] = useState('');
-            const [nodes, setNodes, onNodesChange] = useNodesState([]);
-            const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-            const sendMessage = async () => {
+            const send = async () => {
                 if(!input.trim()) return;
                 const newMsgs = [...messages, {role:'user', content:input}];
                 setMessages(newMsgs);
                 setInput('');
-                const res = await fetch('http://localhost:8000/api/chat', {
+                const res = await fetch(`${API_BASE}/chat`, {
                     method: 'POST',
                     headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({message: input, session_id: 'default'})
+                    body: JSON.stringify({message: input, session_id: 'shailesh-dev'})
                 });
                 const data = await res.json();
                 setMessages([...newMsgs, {role:'assistant', content: data.reply}]);
             };
             return (
-                <div className="app-container">
-                    <div className="sidebar">
-                        <div style={{padding:'20px', fontWeight:'bold', fontSize:'20px'}}>AgentFlow</div>
-                        <div className={`nav-item ${view==='chat'?'active':''}`} onClick={()=>setView('chat')}>Chat</div>
-                        <div className={`nav-item ${view==='workflow'?'active':''}`} onClick={()=>setView('workflow')}>Workflows</div>
+                <div className="chat-view">
+                    <div className="messages">
+                        {messages.map((m,i) => <div key={i} className={`message ${m.role}`}>{m.content}</div>)}
                     </div>
-                    <div className="main-content">
-                        <div className="top-bar">
-                            <span>Session: <b>default</b></span>
-                            <button className="btn btn-primary" onClick={()=>setMessages([])}>Clear Memory</button>
-                        </div>
-                        {view === 'chat' ? (
-                            <div className="chat-view">
-                                <div style={{flex:1, overflowY:'auto'}}>
-                                    {messages.map((m,i)=><div key={i} className={`message ${m.role}`}>{m.content}</div>)}
-                                </div>
-                                <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
-                                    <input style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #334155', background:'#1e293b', color:'white'}} value={input} onChange={e=>setInput(e.target.value)} onKeyPress={e=>e.key==='Enter'&&sendMessage()} />
-                                    <button className="btn btn-primary" onClick={sendMessage}>Send</button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="canvas-container">
-                                <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onConnect={p=>setEdges(e=>addEdge(p,e))} fitView>
-                                    <Background color="#334155" />
-                                    <Controls />
-                                    <MiniMap />
-                                </ReactFlow>
-                            </div>
-                        )}
+                    <div style={{display:'flex', gap:'10px', padding:'20px'}}>
+                        <input className="input" value={input} onChange={e=>setInput(e.target.value)} onKeyPress={e=>e.key==='Enter'&&send()} />
+                        <button className="btn btn-primary" onClick={send}>Send</button>
                     </div>
                 </div>
-
+            );
         };
-        ReactDOM.createRoot(document.getElementById('root')).render(<ReactFlowProvider><App /></ReactFlowProvider>);
+
+        const ListView = ({title, items, type, onAction}) => {
+            const resolve = async (id, status) => {
+                await fetch(`${API_BASE}/approvals/${id}/resolve`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({status})
+                });
+                onAction();
+            };
+            return (
+                <div className="card">
+                    <h2>{title} ({items.length})</h2>
+                    <table className="table" style={{marginTop:'20px'}}>
+                        <thead>
+                            <tr>
+                                <th>Name / Tool</th>
+                                <th>Details</th>
+                                <th>Status</th>
+                                {type === 'approval' && <th>Actions</th>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {items.map(item => (
+                                <tr key={item.id}>
+                                    <td>{item.name || item.tool_name}</td>
+                                    <td>{item.description || JSON.stringify(item.inputs)}</td>
+                                    <td>{item.status || (item.is_active ? 'Active' : 'Inactive')}</td>
+                                    {type === 'approval' && (
+                                        <td>
+                                            <button className="btn btn-primary" style={{padding:'5px 10px', marginRight:'5px'}} onClick={()=>resolve(item.id, 'approved')}>Approve</button>
+                                            <button className="btn btn-danger" style={{padding:'5px 10px'}} onClick={()=>resolve(item.id, 'rejected')}>Reject</button>
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
