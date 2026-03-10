@@ -130,8 +130,7 @@ class ModelGateway:
         fallbacks = [
             "groq/llama3-8b-8192",
             "groq/mixtral-8x7b-32768",
-            "groq/gemma2-9b-it",
-        ]
+            "groq/llama-3.1-8b-instant",        ]
         for m in fallbacks:
             if m != self._primary_model:
                 chain.append(m)
