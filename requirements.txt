@@ -1,22 +1,36 @@
+# Core API
 fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
 pydantic>=2.7.0
 pydantic-settings>=2.3.0
-sqlalchemy[asyncio]>=2.0.30
+
+# Database
+sqlalchemy>=2.0.30
 asyncpg>=0.29.0
 psycopg[binary]>=3.1.19
 psycopg-pool>=3.2.2
 alembic>=1.13.0
+
+# LLM - LiteLLM routes to Groq (Grok), OpenAI, Anthropic, etc.
+litellm>=1.43.0
+groq>=0.9.0
+
+# LangChain (for advanced agent patterns)
 langgraph>=0.2.0
 langgraph-checkpoint-postgres>=2.0.0
 langchain>=0.3.0
 langchain-core>=0.3.0
 langchain-litellm>=0.1.0
-litellm>=1.43.0
+langchain-groq>=0.1.9
+
+# Logging & observability
 structlog>=24.1.0
+
+# Utilities
 pyyaml>=6.0.1
 httpx>=0.27.0
 python-dotenv>=1.0.1
+
+# Dev / testing
 pytest>=8.2.0
 pytest-asyncio>=0.23.0
-httpx>=0.27.0
