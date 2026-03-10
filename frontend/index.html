@@ -1,134 +1,305 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AgentFlow Framework Dashboard</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentFlow - Grok AI Workflow Builder</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reactflow@11/dist/umd/index.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11/dist/style.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .app { display: flex; height: 100vh; }
+    .sidebar { width: 250px; background: #1a1a1a; color: white; padding: 20px; overflow-y: auto; }
+    .sidebar h2 { font-size: 18px; margin-bottom: 15px; }
+    .sidebar .section { margin-bottom: 25px; }
+    .btn { padding: 10px; margin: 5px 0; background: #2563eb; color: white; border: none; cursor: pointer; width: 100%; border-radius: 6px; }
+    .btn:hover { background: #1d4ed8; }
+    .btn-success { background: #10b981; }
+    .btn-success:hover { background: #059669; }
+    .btn-danger { background: #ef4444; }
+    .btn-danger:hover { background: #dc2626; }
+    .main { flex: 1; display: flex; flex-direction: column; }
+    .header { background: #111; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .canvas { flex: 1; position: relative; background: #f3f4f6; }
+    .react-flow__node { padding: 15px; border-radius: 8px; border: 2px solid #2563eb; background: white; }
+    .node-label { font-weight: 600; margin-bottom: 5px; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; }
+    .form-group textarea { min-height: 100px; }
+    .node-list { max-height: 400px; overflow-y: auto; }
+    .node-item { padding: 12px; margin: 8px 0; background: #f3f4f6; border-radius: 6px; cursor: pointer; }
+    .node-item:hover { background: #e5e7eb; }
+    .tool-card { padding: 15px; margin: 10px 0; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .tool-card h4 { margin-bottom: 8px; color: #1f2937; }
+    .tool-card .actions { margin-top: 10px; display: flex; gap: 8px; }
+    .tool-card .actions button { padding: 6px 12px; font-size: 13px; border-radius: 4px; }
+    .chat-container { display: flex; flex-direction: column; height: 100%; }
+    .messages { flex: 1; overflow-y: auto; padding: 20px; }
+    .message { margin: 10px 0; padding: 12px; border-radius: 8px; max-width: 70%; }
+    .message.user { background: #3b82f6; color: white; margin-left: auto; }
+    .message.assistant { background: #f3f4f6; }
+    .chat-input { display: flex; padding: 15px; border-top: 1px solid #e5e7eb; }
+    .chat-input input { flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; margin-right: 10px; }
+  </style>
 </head>
 <body>
-  <header>
-    <div class="logo">AgentFlow<span>Framework</span></div>
-    <nav>
-      <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
-      <button class="nav-btn" data-tab="run-agent">Run Agent</button>
-      <button class="nav-btn" data-tab="workflows">Workflows</button>
-      <button class="nav-btn" data-tab="tools">Tools</button>
-      <button class="nav-btn" data-tab="approvals">Approvals</button>
-    </nav>
-    <div class="status-indicator" id="health-status">
-      <span class="dot"></span> Connecting...
-    </div>
-  </header>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useCallback, useEffect } = React;
+    const ReactFlowInstance = window.ReactFlow;
+    const { ReactFlow, Background, Controls, MiniMap, useNodesState, useEdgesState, addEdge, MarkerType } = ReactFlowInstance;
 
-  <main>
-    <!-- Dashboard Tab -->
-    <section id="tab-dashboard" class="tab active">
-      <h2>System Overview</h2>
-      <div class="stats-grid">
-        <div class="stat-card" id="stat-model">
-          <div class="stat-label">Active Model</div>
-          <div class="stat-value">-</div>
-        </div>
-        <div class="stat-card" id="stat-provider">
-          <div class="stat-label">Provider</div>
-          <div class="stat-value">-</div>
-        </div>
-        <div class="stat-card" id="stat-tools">
-          <div class="stat-label">Registered Tools</div>
-          <div class="stat-value">-</div>
-        </div>
-        <div class="stat-card" id="stat-agents">
-          <div class="stat-label">Registered Agents</div>
-          <div class="stat-value">-</div>
-        </div>
-      </div>
-      <div class="card">
-        <h3>Activity Log</h3>
-        <div id="activity-log" class="log-container">Waiting for activity...</div>
-      </div>
-    </section>
+    const API = 'http://localhost:8000/api';
 
-    <!-- Run Agent Tab -->
-    <section id="tab-run-agent" class="tab">
-      <h2>Run Agent Task</h2>
-      <div class="card">
-        <div class="form-group">
-          <label>Task Description</label>
-          <textarea id="task-input" rows="5" placeholder="Enter task for the supervisor agent...">Process invoice INV-2024-001 from Acme Supplies for $4500. Validate PO, check duplicates, and provide triage report.</textarea>
-        </div>
-        <div class="form-group">
-          <label>Context (JSON, optional)</label>
-          <textarea id="context-input" rows="3" placeholder='{"key": "value"}'>{}</textarea>
-        </div>
-        <button class="btn btn-primary" id="run-btn">Run Agent</button>
-        <button class="btn btn-secondary" id="clear-btn">Clear</button>
-      </div>
-      <div class="card" id="result-card" style="display:none">
-        <h3>Result</h3>
-        <div class="result-meta">
-          <span id="result-agent"></span>
-          <span id="result-time"></span>
-        </div>
-        <div id="result-output" class="result-box"></div>
-      </div>
-    </section>
+    function AgentFlowApp() {
+      const [activeTab, setActiveTab] = useState('workflows');
+      const [workflows, setWorkflows] = useState([]);
+      const [tools, setTools] = useState([]);
+      const [agents, setAgents] = useState([]);
+      const [nodes, setNodes, onNodesChange] = useNodesState([]);
+      const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+      const [currentWorkflow, setCurrentWorkflow] = useState(null);
+      const [showWorkflowModal, setShowWorkflowModal] = useState(false);
+      const [showToolModal, setShowToolModal] = useState(false);
+      const [workflowForm, setWorkflowForm] = useState({ name: '', description: '' });
+      const [toolForm, setToolForm] = useState({ name: '', description: '', code: '', tool_type: 'custom' });
+      const [chatMessages, setChatMessages] = useState([]);
+      const [chatInput, setChatInput] = useState('');
+      const [sessionId, setSessionId] = useState('session-' + Date.now());
 
-    <!-- Workflows Tab -->
-    <section id="tab-workflows" class="tab">
-      <h2>Workflows</h2>
-      <div class="card">
-        <div class="form-group">
-          <label>Workflow Name</label>
-          <select id="workflow-select"><option value="finance_ap">finance_ap</option></select>
-        </div>
-        <div class="form-group">
-          <label>Inputs (JSON)</label>
-          <textarea id="workflow-inputs" rows="8">{
-  "invoice_id": "INV-2024-001",
-  "vendor_name": "Acme Supplies Co.",
-  "invoice_amount": 4500.00,
-  "po_number": "PO-2024-100",
-  "invoice_date": "2024-01-15"
-}</textarea>
-        </div>
-        <button class="btn btn-primary" id="run-workflow-btn">Execute Workflow</button>
-      </div>
-      <div class="card" id="workflow-result-card" style="display:none">
-        <h3>Workflow Result</h3>
-        <div id="workflow-result-output" class="result-box"></div>
-      </div>
-    </section>
+      useEffect(() => { loadWorkflows(); loadTools(); loadAgents(); }, []);
 
-    <!-- Tools Tab -->
-    <section id="tab-tools" class="tab">
-      <h2>Registered Tools</h2>
-      <div id="tools-grid" class="tools-grid">Loading tools...</div>
-      <div class="card">
-        <h3>Test Tool</h3>
-        <div class="form-group">
-          <label>Tool Name</label>
-          <input type="text" id="tool-name-input" placeholder="tool_name" />
-        </div>
-        <div class="form-group">
-          <label>Arguments (JSON)</label>
-          <textarea id="tool-args-input" rows="3">{}</textarea>
-        </div>
-        <button class="btn btn-primary" id="execute-tool-btn">Execute Tool</button>
-        <div id="tool-result" class="result-box" style="margin-top:1rem; display:none"></div>
-      </div>
-    </section>
+      const loadWorkflows = async () => {
+        const res = await fetch(`${API}/workflows`);
+        const data = await res.json();
+        setWorkflows(data.workflows || []);
+      };
 
-    <!-- Approvals Tab -->
-    <section id="tab-approvals" class="tab">
-      <h2>Pending Approvals</h2>
-      <div class="card">
-        <button class="btn btn-secondary" id="refresh-approvals-btn">Refresh</button>
-        <div id="approvals-list" style="margin-top:1rem">No pending approvals.</div>
-      </div>
-    </section>
-  </main>
+      const loadTools = async () => {
+        const res = await fetch(`${API}/tools`);
+        const data = await res.json();
+        setTools(data.tools || []);
+      };
 
-  <script src="/static/app.js"></script>
+      const loadAgents = async () => {
+        const res = await fetch(`${API}/agents`);
+        const data = await res.json();
+        setAgents(data.agents || []);
+      };
+
+      const onConnect = useCallback((params) => {
+        setEdges((eds) => addEdge({ ...params, markerEnd: { type: MarkerType.ArrowClosed } }, eds));
+      }, [setEdges]);
+
+      const addNode = (type) => {
+        const id = `${type}-${Date.now()}`;
+        const newNode = {
+          id,
+          type: 'default',
+          position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
+          data: { label: type === 'llm' ? '\uD83E\uDD16 LLM Node' : type === 'tool' ? '\uD83D\uDEE0 Tool Node' : '\uD83D\uDCE5 Input Node', type, prompt: '', system_prompt: 'You are a helpful AI agent.', tool_name: '' },
+        };
+        setNodes((nds) => [...nds, newNode]);
+      };
+
+      const saveWorkflow = async () => {
+        const workflowData = { ...workflowForm, nodes, edges };
+        if (currentWorkflow) {
+          await fetch(`${API}/workflows/${currentWorkflow.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(workflowData),
+          });
+        } else {
+          await fetch(`${API}/workflows`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(workflowData),
+          });
+        }
+        loadWorkflows();
+        setShowWorkflowModal(false);
+        alert('Workflow saved!');
+      };
+
+      const loadWorkflowToCanvas = (wf) => {
+        setCurrentWorkflow(wf);
+        setNodes(wf.nodes || []);
+        setEdges(wf.edges || []);
+        setWorkflowForm({ name: wf.name, description: wf.description });
+        setActiveTab('workflows');
+      };
+
+      const runWorkflow = async (wfId) => {
+        const res = await fetch(`${API}/workflows/${wfId}/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input_data: { query: 'Test input' }, session_id: sessionId }),
+        });
+        const data = await res.json();
+        alert('Workflow execution: ' + data.status + '\n' + JSON.stringify(data.output, null, 2));
+      };
+
+      const createTool = async () => {
+        await fetch(`${API}/tools`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(toolForm),
+        });
+        loadTools();
+        setShowToolModal(false);
+        setToolForm({ name: '', description: '', code: '', tool_type: 'custom' });
+      };
+
+      const sendChatMessage = async () => {
+        if (!chatInput.trim()) return;
+        const userMsg = { role: 'user', content: chatInput };
+        setChatMessages([...chatMessages, userMsg]);
+        setChatInput('');
+        const res = await fetch(`${API}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: chatInput, session_id: sessionId }),
+        });
+        const data = await res.json();
+        setChatMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
+      };
+
+      return (
+        <div className="app">
+          <div className="sidebar">
+            <h2>\uD83D\uDE80 AgentFlow</h2>
+            <div className="section">
+              <button className="btn" onClick={() => setActiveTab('workflows')}>Workflows</button>
+              <button className="btn" onClick={() => setActiveTab('tools')}>Tools</button>
+              <button className="btn" onClick={() => setActiveTab('chat')}>Chat (Grok)</button>
+            </div>
+            {activeTab === 'workflows' && (
+              <div>
+                <h3>Actions</h3>
+                <button className="btn btn-success" onClick={() => { setShowWorkflowModal(true); setCurrentWorkflow(null); setWorkflowForm({ name: '', description: '' }); }}>New Workflow</button>
+                <button className="btn" onClick={() => addNode('llm')}>Add LLM Node</button>
+                <button className="btn" onClick={() => addNode('tool')}>Add Tool Node</button>
+                <button className="btn" onClick={() => addNode('input')}>Add Input Node</button>
+                <button className="btn btn-success" onClick={saveWorkflow}>Save Canvas</button>
+                <h3 style={{marginTop: 20}}>Workflows</h3>
+                <div className="node-list">
+                  {workflows.map(wf => (
+                    <div key={wf.id} className="node-item">
+                      <strong>{wf.name}</strong>
+                      <p style={{fontSize: 12}}>{wf.description}</p>
+                      <button className="btn" style={{marginTop: 8}} onClick={() => loadWorkflowToCanvas(wf)}>Load</button>
+                      <button className="btn btn-success" style={{marginTop: 5}} onClick={() => runWorkflow(wf.id)}>Run</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {activeTab === 'tools' && (
+              <div>
+                <button className="btn btn-success" onClick={() => setShowToolModal(true)}>Create Tool</button>
+              </div>
+            )}
+          </div>
+          <div className="main">
+            <div className="header">
+              <div><strong>AgentFlow Framework</strong> - Grok AI Powered</div>
+              <div>Session: {sessionId.slice(-8)}</div>
+            </div>
+            <div className="canvas">
+              {activeTab === 'workflows' && (
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  onConnect={onConnect}
+                  fitView
+                >
+                  <Background />
+                  <Controls />
+                  <MiniMap />
+                </ReactFlow>
+              )}
+              {activeTab === 'tools' && (
+                <div style={{padding: 30, overflowY: 'auto', height: '100%'}}>
+                  <h2>Tools ({tools.length})</h2>
+                  {tools.map(tool => (
+                    <div key={tool.id} className="tool-card">
+                      <h4>{tool.name}</h4>
+                      <p>{tool.description}</p>
+                      <p style={{fontSize: 12, color: '#6b7280'}}>Type: {tool.tool_type}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {activeTab === 'chat' && (
+                <div className="chat-container">
+                  <div className="messages">
+                    {chatMessages.map((msg, i) => (
+                      <div key={i} className={`message ${msg.role}`}>
+                        <strong>{msg.role === 'user' ? 'You' : 'Grok AI'}:</strong> {msg.content}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="chat-input">
+                    <input placeholder="Ask Grok AI anything..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()} />
+                    <button className="btn btn-success" onClick={sendChatMessage}>Send</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          {showWorkflowModal && (
+            <div className="modal" onClick={() => setShowWorkflowModal(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <h2>Create Workflow</h2>
+                <div className="form-group">
+                  <label>Name</label>
+                  <input value={workflowForm.name} onChange={(e) => setWorkflowForm({...workflowForm, name: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Description</label>
+                  <textarea value={workflowForm.description} onChange={(e) => setWorkflowForm({...workflowForm, description: e.target.value})} />
+                </div>
+                <button className="btn btn-success" onClick={saveWorkflow}>Save</button>
+                <button className="btn" onClick={() => setShowWorkflowModal(false)} style={{marginTop: 10}}>Cancel</button>
+              </div>
+            </div>
+          )}
+          {showToolModal && (
+            <div className="modal" onClick={() => setShowToolModal(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <h2>Create Tool</h2>
+                <div className="form-group">
+                  <label>Name</label>
+                  <input value={toolForm.name} onChange={(e) => setToolForm({...toolForm, name: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Description</label>
+                  <textarea value={toolForm.description} onChange={(e) => setToolForm({...toolForm, description: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Python Code (dynamic execution)</label>
+                  <textarea value={toolForm.code} onChange={(e) => setToolForm({...toolForm, code: e.target.value})} placeholder="result = inputs.get('x', 0) * 2" />
+                </div>
+                <button className="btn btn-success" onClick={createTool}>Create</button>
+                <button className="btn" onClick={() => setShowToolModal(false)} style={{marginTop: 10}}>Cancel</button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<AgentFlowApp />, document.getElementById('root'));
+  </script>
 </body>
 </html>
