@@ -1,305 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentFlow - Grok AI Workflow Builder</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/reactflow@11/dist/umd/index.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11/dist/style.min.css">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    .app { display: flex; height: 100vh; }
-    .sidebar { width: 250px; background: #1a1a1a; color: white; padding: 20px; overflow-y: auto; }
-    .sidebar h2 { font-size: 18px; margin-bottom: 15px; }
-    .sidebar .section { margin-bottom: 25px; }
-    .btn { padding: 10px; margin: 5px 0; background: #2563eb; color: white; border: none; cursor: pointer; width: 100%; border-radius: 6px; }
-    .btn:hover { background: #1d4ed8; }
-    .btn-success { background: #10b981; }
-    .btn-success:hover { background: #059669; }
-    .btn-danger { background: #ef4444; }
-    .btn-danger:hover { background: #dc2626; }
-    .main { flex: 1; display: flex; flex-direction: column; }
-    .header { background: #111; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
-    .canvas { flex: 1; position: relative; background: #f3f4f6; }
-    .react-flow__node { padding: 15px; border-radius: 8px; border: 2px solid #2563eb; background: white; }
-    .node-label { font-weight: 600; margin-bottom: 5px; }
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-    .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
-    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; }
-    .form-group textarea { min-height: 100px; }
-    .node-list { max-height: 400px; overflow-y: auto; }
-    .node-item { padding: 12px; margin: 8px 0; background: #f3f4f6; border-radius: 6px; cursor: pointer; }
-    .node-item:hover { background: #e5e7eb; }
-    .tool-card { padding: 15px; margin: 10px 0; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; }
-    .tool-card h4 { margin-bottom: 8px; color: #1f2937; }
-    .tool-card .actions { margin-top: 10px; display: flex; gap: 8px; }
-    .tool-card .actions button { padding: 6px 12px; font-size: 13px; border-radius: 4px; }
-    .chat-container { display: flex; flex-direction: column; height: 100%; }
-    .messages { flex: 1; overflow-y: auto; padding: 20px; }
-    .message { margin: 10px 0; padding: 12px; border-radius: 8px; max-width: 70%; }
-    .message.user { background: #3b82f6; color: white; margin-left: auto; }
-    .message.assistant { background: #f3f4f6; }
-    .chat-input { display: flex; padding: 15px; border-top: 1px solid #e5e7eb; }
-    .chat-input input { flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; margin-right: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentFlow Pro - Grok Orchestration</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reactflow@11/dist/umd/index.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11/dist/style.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #0f172a; color: #f8fafc; }
+        .app-container { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+        .sidebar { width: 280px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 15px; }
+        .nav-item { padding: 12px 15px; margin-bottom: 5px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s; color: #94a3b8; }
+        .nav-item:hover { background: #334155; color: #f8fafc; }
+        .nav-item.active { background: #2563eb; color: white; }
+        .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
+        .top-bar { height: 60px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; }
+        .content-body { flex: 1; position: relative; overflow: hidden; }
+        .chat-view { display: flex; flex-direction: column; height: 100%; max-width: 900px; margin: 0 auto; width: 100%; }
+        .messages-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        .message { padding: 16px; border-radius: 12px; max-width: 85%; line-height: 1.5; }
+        .message.user { background: #334155; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .message.assistant { background: #2563eb; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .chat-input-area { padding: 25px; border-top: 1px solid #334155; }
+        .input-wrapper { background: #334155; border-radius: 12px; padding: 5px 15px; display: flex; align-items: center; border: 1px solid transparent; transition: 0.2s; }
+        .input-wrapper input { flex: 1; background: transparent; border: none; color: white; padding: 12px 0; outline: none; font-size: 15px; }
+        .canvas-container { height: 100%; width: 100%; background: #0f172a; }
+        .node-palette { position: absolute; left: 20px; top: 20px; background: #1e293b; padding: 15px; border-radius: 12px; border: 1px solid #334155; z-index: 10; width: 200px; }
+        .draggable-node { padding: 10px; margin-bottom: 8px; background: #334155; border-radius: 6px; cursor: grab; font-size: 14px; border: 1px solid #475569; }
+        .properties-panel { position: absolute; right: 0; top: 0; bottom: 0; width: 320px; background: #1e293b; border-left: 1px solid #334155; padding: 25px; z-index: 10; transition: transform 0.3s; }
+        .properties-panel.hidden { transform: translateX(100%); }
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-ghost { background: transparent; color: #94a3b8; }
+        .loader { width: 18px; height: 18px; border: 2px solid #fff; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useCallback, useEffect } = React;
-    const ReactFlowInstance = window.ReactFlow;
-    const { ReactFlow, Background, Controls, MiniMap, useNodesState, useEdgesState, addEdge, MarkerType } = ReactFlowInstance;
-
-    const API = 'http://localhost:8000/api';
-
-    function AgentFlowApp() {
-      const [activeTab, setActiveTab] = useState('workflows');
-      const [workflows, setWorkflows] = useState([]);
-      const [tools, setTools] = useState([]);
-      const [agents, setAgents] = useState([]);
-      const [nodes, setNodes, onNodesChange] = useNodesState([]);
-      const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-      const [currentWorkflow, setCurrentWorkflow] = useState(null);
-      const [showWorkflowModal, setShowWorkflowModal] = useState(false);
-      const [showToolModal, setShowToolModal] = useState(false);
-      const [workflowForm, setWorkflowForm] = useState({ name: '', description: '' });
-      const [toolForm, setToolForm] = useState({ name: '', description: '', code: '', tool_type: 'custom' });
-      const [chatMessages, setChatMessages] = useState([]);
-      const [chatInput, setChatInput] = useState('');
-      const [sessionId, setSessionId] = useState('session-' + Date.now());
-
-      useEffect(() => { loadWorkflows(); loadTools(); loadAgents(); }, []);
-
-      const loadWorkflows = async () => {
-        const res = await fetch(`${API}/workflows`);
-        const data = await res.json();
-        setWorkflows(data.workflows || []);
-      };
-
-      const loadTools = async () => {
-        const res = await fetch(`${API}/tools`);
-        const data = await res.json();
-        setTools(data.tools || []);
-      };
-
-      const loadAgents = async () => {
-        const res = await fetch(`${API}/agents`);
-        const data = await res.json();
-        setAgents(data.agents || []);
-      };
-
-      const onConnect = useCallback((params) => {
-        setEdges((eds) => addEdge({ ...params, markerEnd: { type: MarkerType.ArrowClosed } }, eds));
-      }, [setEdges]);
-
-      const addNode = (type) => {
-        const id = `${type}-${Date.now()}`;
-        const newNode = {
-          id,
-          type: 'default',
-          position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
-          data: { label: type === 'llm' ? '\uD83E\uDD16 LLM Node' : type === 'tool' ? '\uD83D\uDEE0 Tool Node' : '\uD83D\uDCE5 Input Node', type, prompt: '', system_prompt: 'You are a helpful AI agent.', tool_name: '' },
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+        const { ReactFlow, ReactFlowProvider, addEdge, Background, Controls, MiniMap, useNodesState, useEdgesState, MarkerType } = ReactFlowInstance;
+        const API_URL = 'http://localhost:8000/api';
+        const AgentFlowApp = () => {
+            const [view, setView] = useState('chat');
+            const [activeSession, setActiveSession] = useState('default');
+            const [messages, setMessages] = useState([]);
+            const [input, setInput] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const [nodes, setNodes, onNodesChange] = useNodesState([]);
+            const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+            const [selectedNode, setSelectedNode] = useState(null);
+            const sendMessage = async () => {
+                if (!input.trim() || isLoading) return;
+                const userMsg = { role: 'user', content: input };
+                setMessages(prev => [...prev, userMsg]);
+                setInput('');
+                setIsLoading(true);
+                try {
+                    const response = await fetch(`${API_URL}/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: input, session_id: activeSession })
+                    });
+                    const data = await response.json();
+                    setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+                } catch (e) {
+                    setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Server error' }]);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            const onConnect = useCallback((params) => setEdges((eds) => addEdge({ ...params, markerEnd: { type: MarkerType.ArrowClosed } }, eds)), []);
+            const onDrop = useCallback((event) => {
+                event.preventDefault();
+                const type = event.dataTransfer.getData('application/reactflow');
+                const position = { x: event.clientX - 400, y: event.clientY - 100 };
+                const newNode = {
+                    id: `${type}_${Date.now()}`,
+                    type: 'default',
+                    position,
+                    data: { label: type.toUpperCase() },
+                    style: { background: '#1e293b', color: 'white', border: '1px solid #3b82f6', borderRadius: '8px', padding: '10px' }
+                };
+                setNodes((nds) => nds.concat(newNode));
+            }, [setNodes]);
+            return (
+                <div className="app-container">
+                    <div className="sidebar">
+                        <div className="sidebar-header">
+                            <i className="fas fa-robot text-blue-500"></i>
+                            <h2 style={{fontSize: '20px'}}>AgentFlow Pro</h2>
+                        </div>
+                        <div className="sidebar-content">
+                            <div className={`nav-item ${view === 'chat' ? 'active' : ''}`} onClick={() => setView('chat')}>
+                                <i className="fas fa-comment-alt"></i> Chat
+                            </div>
+                            <div className={`nav-item ${view === 'workflow' ? 'active' : ''}`} onClick={() => setView('workflow')}>
+                                <i className="fas fa-project-diagram"></i> Workflows
+                            </div>
+                        </div>
+                    </div>
+                    <div className="main-content">
+                        <div className="top-bar">
+                            <span>Session: <b>{activeSession}</b></span>
+                            <button className="btn btn-primary" onClick={() => setActiveSession('sess_'+Date.now())}>New Session</button>
+                        </div>
+                        <div className="content-body">
+                            {view === 'chat' && (
+                                <div className="chat-view">
+                                    <div className="messages-container">
+                                        {messages.map((m, i) => (
+                                            <div key={i} className={`message ${m.role}`}>
+                                                <div style={{fontSize: '10px', opacity: 0.5}}>{m.role.toUpperCase()}</div>
+                                                {m.content}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="chat-input-area">
+                                        <div className="input-wrapper">
+                                            <input placeholder="Type..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} />
+                                            <button className="btn btn-primary" onClick={sendMessage}>Send</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {view === 'workflow' && (
+                                <div className="canvas-container" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+                                    <div className="node-palette">
+                                        <div className="draggable-node" draggable onDragStart={(e) => e.dataTransfer.setData('application/reactflow', 'llm')}>LLM Task</div>
+                                        <div className="draggable-node" draggable onDragStart={(e) => e.dataTransfer.setData('application/reactflow', 'tool')}>Tool Call</div>
+                                    </div>
+                                    <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onConnect={onConnect} fitView>
+                                        <Background color="#334155" />
+                                        <Controls />
+                                        <MiniMap />
+                                    </ReactFlow>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
         };
-        setNodes((nds) => [...nds, newNode]);
-      };
-
-      const saveWorkflow = async () => {
-        const workflowData = { ...workflowForm, nodes, edges };
-        if (currentWorkflow) {
-          await fetch(`${API}/workflows/${currentWorkflow.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(workflowData),
-          });
-        } else {
-          await fetch(`${API}/workflows`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(workflowData),
-          });
-        }
-        loadWorkflows();
-        setShowWorkflowModal(false);
-        alert('Workflow saved!');
-      };
-
-      const loadWorkflowToCanvas = (wf) => {
-        setCurrentWorkflow(wf);
-        setNodes(wf.nodes || []);
-        setEdges(wf.edges || []);
-        setWorkflowForm({ name: wf.name, description: wf.description });
-        setActiveTab('workflows');
-      };
-
-      const runWorkflow = async (wfId) => {
-        const res = await fetch(`${API}/workflows/${wfId}/run`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ input_data: { query: 'Test input' }, session_id: sessionId }),
-        });
-        const data = await res.json();
-        alert('Workflow execution: ' + data.status + '\n' + JSON.stringify(data.output, null, 2));
-      };
-
-      const createTool = async () => {
-        await fetch(`${API}/tools`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(toolForm),
-        });
-        loadTools();
-        setShowToolModal(false);
-        setToolForm({ name: '', description: '', code: '', tool_type: 'custom' });
-      };
-
-      const sendChatMessage = async () => {
-        if (!chatInput.trim()) return;
-        const userMsg = { role: 'user', content: chatInput };
-        setChatMessages([...chatMessages, userMsg]);
-        setChatInput('');
-        const res = await fetch(`${API}/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: chatInput, session_id: sessionId }),
-        });
-        const data = await res.json();
-        setChatMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
-      };
-
-      return (
-        <div className="app">
-          <div className="sidebar">
-            <h2>\uD83D\uDE80 AgentFlow</h2>
-            <div className="section">
-              <button className="btn" onClick={() => setActiveTab('workflows')}>Workflows</button>
-              <button className="btn" onClick={() => setActiveTab('tools')}>Tools</button>
-              <button className="btn" onClick={() => setActiveTab('chat')}>Chat (Grok)</button>
-            </div>
-            {activeTab === 'workflows' && (
-              <div>
-                <h3>Actions</h3>
-                <button className="btn btn-success" onClick={() => { setShowWorkflowModal(true); setCurrentWorkflow(null); setWorkflowForm({ name: '', description: '' }); }}>New Workflow</button>
-                <button className="btn" onClick={() => addNode('llm')}>Add LLM Node</button>
-                <button className="btn" onClick={() => addNode('tool')}>Add Tool Node</button>
-                <button className="btn" onClick={() => addNode('input')}>Add Input Node</button>
-                <button className="btn btn-success" onClick={saveWorkflow}>Save Canvas</button>
-                <h3 style={{marginTop: 20}}>Workflows</h3>
-                <div className="node-list">
-                  {workflows.map(wf => (
-                    <div key={wf.id} className="node-item">
-                      <strong>{wf.name}</strong>
-                      <p style={{fontSize: 12}}>{wf.description}</p>
-                      <button className="btn" style={{marginTop: 8}} onClick={() => loadWorkflowToCanvas(wf)}>Load</button>
-                      <button className="btn btn-success" style={{marginTop: 5}} onClick={() => runWorkflow(wf.id)}>Run</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {activeTab === 'tools' && (
-              <div>
-                <button className="btn btn-success" onClick={() => setShowToolModal(true)}>Create Tool</button>
-              </div>
-            )}
-          </div>
-          <div className="main">
-            <div className="header">
-              <div><strong>AgentFlow Framework</strong> - Grok AI Powered</div>
-              <div>Session: {sessionId.slice(-8)}</div>
-            </div>
-            <div className="canvas">
-              {activeTab === 'workflows' && (
-                <ReactFlow
-                  nodes={nodes}
-                  edges={edges}
-                  onNodesChange={onNodesChange}
-                  onEdgesChange={onEdgesChange}
-                  onConnect={onConnect}
-                  fitView
-                >
-                  <Background />
-                  <Controls />
-                  <MiniMap />
-                </ReactFlow>
-              )}
-              {activeTab === 'tools' && (
-                <div style={{padding: 30, overflowY: 'auto', height: '100%'}}>
-                  <h2>Tools ({tools.length})</h2>
-                  {tools.map(tool => (
-                    <div key={tool.id} className="tool-card">
-                      <h4>{tool.name}</h4>
-                      <p>{tool.description}</p>
-                      <p style={{fontSize: 12, color: '#6b7280'}}>Type: {tool.tool_type}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {activeTab === 'chat' && (
-                <div className="chat-container">
-                  <div className="messages">
-                    {chatMessages.map((msg, i) => (
-                      <div key={i} className={`message ${msg.role}`}>
-                        <strong>{msg.role === 'user' ? 'You' : 'Grok AI'}:</strong> {msg.content}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="chat-input">
-                    <input placeholder="Ask Grok AI anything..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()} />
-                    <button className="btn btn-success" onClick={sendChatMessage}>Send</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          {showWorkflowModal && (
-            <div className="modal" onClick={() => setShowWorkflowModal(false)}>
-              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <h2>Create Workflow</h2>
-                <div className="form-group">
-                  <label>Name</label>
-                  <input value={workflowForm.name} onChange={(e) => setWorkflowForm({...workflowForm, name: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea value={workflowForm.description} onChange={(e) => setWorkflowForm({...workflowForm, description: e.target.value})} />
-                </div>
-                <button className="btn btn-success" onClick={saveWorkflow}>Save</button>
-                <button className="btn" onClick={() => setShowWorkflowModal(false)} style={{marginTop: 10}}>Cancel</button>
-              </div>
-            </div>
-          )}
-          {showToolModal && (
-            <div className="modal" onClick={() => setShowToolModal(false)}>
-              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <h2>Create Tool</h2>
-                <div className="form-group">
-                  <label>Name</label>
-                  <input value={toolForm.name} onChange={(e) => setToolForm({...toolForm, name: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea value={toolForm.description} onChange={(e) => setToolForm({...toolForm, description: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Python Code (dynamic execution)</label>
-                  <textarea value={toolForm.code} onChange={(e) => setToolForm({...toolForm, code: e.target.value})} placeholder="result = inputs.get('x', 0) * 2" />
-                </div>
-                <button className="btn btn-success" onClick={createTool}>Create</button>
-                <button className="btn" onClick={() => setShowToolModal(false)} style={{marginTop: 10}}>Cancel</button>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    ReactDOM.render(<AgentFlowApp />, document.getElementById('root'));
-  </script>
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ReactFlowProvider><AgentFlowApp /></ReactFlowProvider>);
+    </script>
 </body>
 </html>
