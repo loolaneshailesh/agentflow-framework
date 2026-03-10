@@ -1,219 +1,298 @@
-# AgentFlow Framework
+# 🚀 AgentFlow Framework v2.0 - Grok AI Powered
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-A lightweight, open-source, modular AI agent orchestration framework built on LangGraph and LiteLLM. AgentFlow provides a clean abstraction layer for building multi-agent workflows with multi-LLM routing, dynamic tool registry, human-in-the-loop approvals, persistent memory, and full observability.
+A production-ready, open-source AI agent orchestration framework with **Grok LLM** (via Groq), drag-and-drop workflow builder, persistent database memory, and dynamic tool creation.
 
-## Features
+## ✨ Features
 
-- **Workflow Orchestration** - Define, compose, and execute multi-step agent workflows using a clean spec-based API
-- **Multi-LLM Routing** - Route tasks to the best LLM (OpenAI, Anthropic, Gemini, Ollama) via LiteLLM with automatic fallback
-- **Dynamic Tool Registry** - Register, discover, and invoke tools at runtime with type-safe inputs and sandboxed execution
-- **Human-in-the-Loop** - Built-in approval queue for sensitive operations requiring human review before proceeding
-- **Persistent Memory** - Vector-backed semantic memory store for agent context and long-term recall
-- **Observability** - Structured logging, trace context propagation, and execution metrics out of the box
-- **Finance AP Demo** - End-to-end demo: AI-powered Finance Accounts Payable invoice exception triage workflow
-- **REST API** - FastAPI-based server exposing all framework capabilities via HTTP
-- **Dashboard** - Web-based frontend for monitoring workflows, agents, and approvals in real time
+### 🧠 **Grok AI Integration**
+- **Default LLM**: Groq-powered Llama3 (Grok AI) with ultra-fast inference
+- **Persistent Memory**: SQLite/PostgreSQL-backed conversation history
+- **Multi-LLM Fallback**: Automatic failover to OpenAI, Anthropic, Gemini, etc.
+- **Session Management**: Conversation history per session with configurable window size
 
-## Architecture
+### 🎨 **Drag-and-Drop Workflow Builder**
+- **React Flow UI**: Visual workflow graph editor
+- **Node Types**: LLM nodes, tool nodes, input nodes
+- **Live Editing**: Add nodes, connect edges, save workflows to database
+- **Workflow Execution**: Run workflows with Grok LLM processing each node
+
+### 🛠️ **Dynamic Tool Creation**
+- **UI-Based Creation**: Create tools through the web interface
+- **Python Code Execution**: Write custom Python code for tools
+- **Database Persistence**: All tools saved to DB
+- **Runtime Registration**: Auto-register tools in the framework
+
+### 💾 **Full Database Persistence**
+- **SQLAlchemy ORM**: Workflows, tools, agents, conversations, messages, approvals
+- **SQLite Default**: Zero config for local development
+- **PostgreSQL Ready**: Production-grade async DB support
+- **Auto-Init**: Database tables created on startup
+
+### 🤖 **Agent Management**
+- **Create Agents**: Define agents with custom system prompts
+- **Tool Assignment**: Assign tools to specific agents
+- **DB-Backed**: All agent configs persisted
+
+## 🏗️ Architecture
 
 ```
 agentflow-framework/
-├── agentflow/              # Core framework package
-│   ├── core/               # Workflow, Task, Agent, Engine abstractions
-│   ├── agents/             # Built-in agent implementations (ToolAgent, etc.)
-│   ├── llm/                # ModelGateway - multi-LLM routing & fallback
-│   ├── tools/              # Dynamic tool registry & safe code execution
-│   ├── memory/             # VectorMemoryStore for semantic similarity search
-│   ├── store/              # Approval queue and state persistence
-│   ├── workflow/           # LangGraph-based workflow state definitions
-│   ├── observability/      # Structured logging and trace context
-│   ├── api/                # Pydantic schemas for REST API
-│   └── utils/              # Helper utilities
-├── demos/                  # Example demos (Finance AP Invoice Triage)
-├── workflows/              # YAML/JSON workflow definitions
-├── frontend/               # Web dashboard (HTML/CSS/JS)
-├── scripts/                # Run and utility scripts
-├── tests/                  # Unit and integration tests
-├── .env.example            # Environment variable template
-├── requirements.txt        # Python dependencies
+├── agentflow/
+│   ├── core/
+│   │   ├── database.py         # SQLAlchemy models (Workflows, Tools, Agents, Messages)
+│   │   ├── config.py           # Settings with Grok/Groq defaults
+│   │   └── engine.py
+│   ├── llm/
+│   │   └── gateway.py          # LiteLLM gateway with DBMemoryManager
+│   ├── api/
+│   │   ├── main.py             # FastAPI app with DB init
+│   │   └── routes/
+│   │       ├── workflows.py    # Workflow CRUD + execution
+│   │       ├── tools.py        # Tool CRUD + dynamic execution
+│   │       └── chat.py         # Grok chat + Agent management
+│   └── tools/
+│       └── registry.py
+├── frontend/
+│   └── index.html              # React + React Flow drag-and-drop UI
+├── requirements.txt
+├── .env.example
 └── README.md
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
-### Prerequisites
-
-- Python 3.9+
-- pip
-
-### Installation
+### 1. Install Dependencies
 
 ```bash
-# Clone the repository
 git clone https://github.com/loolaneshailesh/agentflow-framework.git
 cd agentflow-framework
-
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
 pip install -r requirements.txt
 ```
 
-### Configuration
+### 2. Configure Environment
 
 ```bash
-# Copy the environment template
 cp .env.example .env
-
-# Edit .env and add your API keys
-# OPENAI_API_KEY=sk-...
-# ANTHROPIC_API_KEY=sk-ant-...
-# GOOGLE_API_KEY=...
+# Edit .env and add your Groq API key:
+# GROQ_API_KEY=gsk_your_groq_api_key_here
+# Get free API key at: https://console.groq.com/keys
 ```
 
-### Run the API Server
+### 3. Run the Server
 
 ```bash
-python scripts/run.py
-# or
-uvicorn agentflow.api.server:app --reload --port 8000
+# Using uvicorn directly
+uvicorn agentflow.api.main:app --reload
+
+# OR using Python
+python -m uvicorn agentflow.api.main:app --reload
 ```
 
-### Run the Finance AP Demo
+The server starts at **http://localhost:8000**
+
+### 4. Open the UI
+
+Navigate to **http://localhost:8000** in your browser.
+
+You'll see:
+- **Workflows Tab**: Drag-and-drop workflow builder
+- **Tools Tab**: Create and manage dynamic tools
+- **Chat Tab**: Chat with Grok AI with persistent memory
+
+## 📚 Usage Examples
+
+### Creating a Workflow (UI)
+
+1. Click **"New Workflow"**
+2. Name it (e.g., "Customer Support Flow")
+3. Add nodes:
+   - **Add LLM Node**: Processes text with Grok
+   - **Add Tool Node**: Executes a tool
+   - **Add Input Node**: Workflow input
+4. Connect nodes by dragging edges
+5. Click **"Save Canvas"**
+6. Click **"Run"** to execute with Grok LLM
+
+### Creating a Custom Tool (UI)
+
+1. Go to **Tools** tab
+2. Click **"Create Tool"**
+3. Fill in:
+   - **Name**: `calculate_discount`
+   - **Description**: "Calculates discount based on price"
+   - **Python Code**:
+   ```python
+   price = inputs.get('price', 0)
+   discount_pct = inputs.get('discount', 10)
+   result = price * (1 - discount_pct / 100)
+   ```
+4. Click **"Create"**
+
+The tool is now available in workflows!
+
+### Chatting with Grok AI (UI)
+
+1. Go to **Chat (Grok)** tab
+2. Type a message: "Explain quantum computing"
+3. Grok AI responds with context-aware answers
+4. **Memory is persistent**: Previous messages are remembered
+
+### API Usage (cURL)
+
+**Chat with Grok:**
+```bash
+curl -X POST http://localhost:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "What is AgentFlow?",
+    "session_id": "user123"
+  }'
+```
+
+**Create Workflow:**
+```bash
+curl -X POST http://localhost:8000/api/workflows \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Data Pipeline",
+    "description": "Processes data with AI",
+    "nodes": [
+      {"id": "llm-1", "type": "default", "position": {"x": 100, "y": 100}, "data": {"label": "LLM Node", "type": "llm"}}
+    ],
+    "edges": []
+  }'
+```
+
+**Run Workflow:**
+```bash
+curl -X POST http://localhost:8000/api/workflows/{workflow_id}/run \
+  -H "Content-Type: application/json" \
+  -d '{"input_data": {"text": "Analyze this"}}'
+```
+
+## ⚙️ Configuration
+
+### Environment Variables (.env)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GROQ_API_KEY` | - | **Required**: Groq API key for Grok LLM |
+| `ACTIVE_LLM_MODEL` | `groq/llama3-70b-8192` | Default LLM model |
+| `DATABASE_URL` | `sqlite:///./agentflow.db` | Database connection string |
+| `ENABLE_MEMORY` | `true` | Enable conversation memory |
+| `MEMORY_BACKEND` | `db` | Memory backend (db or in_memory) |
+| `MEMORY_WINDOW_SIZE` | `20` | Number of messages in context |
+| `LOG_LEVEL` | `INFO` | Logging level |
+
+### Supported LLM Models
+
+**Groq (Grok):**
+- `groq/llama3-70b-8192`
+- `groq/llama3-8b-8192`
+- `groq/mixtral-8x7b-32768`
+- `groq/gemma2-9b-it`
+
+**Others:**
+- OpenAI: `gpt-4o`, `gpt-4-turbo`, `gpt-3.5-turbo`
+- Anthropic: `claude-3-5-sonnet-20241022`
+- Google: `gemini/gemini-pro`
+
+## 🗃️ Database Schema
+
+```sql
+-- Workflows: Store workflow definitions
+CREATE TABLE workflows (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  nodes JSON,  -- ReactFlow nodes
+  edges JSON,  -- ReactFlow edges
+  status TEXT,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+
+-- Tools: Dynamic tool definitions
+CREATE TABLE tools (
+  id TEXT PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL,
+  description TEXT,
+  tool_type TEXT,  -- custom, builtin, llm
+  parameters JSON,
+  code TEXT,  -- Python code
+  is_active BOOLEAN,
+  created_at TIMESTAMP
+);
+
+-- Conversations: Chat sessions
+CREATE TABLE conversations (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  agent_id TEXT,
+  workflow_id TEXT,
+  created_at TIMESTAMP
+);
+
+-- Messages: Conversation history
+CREATE TABLE messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT,
+  role TEXT,  -- user, assistant, system
+  content TEXT,
+  created_at TIMESTAMP
+);
+```
+
+## 🛡️ Security Notes
+
+- **Dynamic Code Execution**: The `code` field in tools executes Python. Use with caution in production.
+- **API Keys**: Never commit `.env` to version control
+- **CORS**: Default is `*` for dev. Restrict in production.
+
+## 🧪 Testing
 
 ```bash
-python demos/finance_ap_demo.py
-```
-
-## Usage
-
-### Define a Workflow
-
-```python
-from agentflow.core.workflow import Workflow
-from agentflow.core.task import Task, TaskPriority
-from agentflow.core.engine import WorkflowEngine
-from agentflow.agents import ToolAgent
-
-# Create an engine
-engine = WorkflowEngine()
-
-# Register an agent
-agent = ToolAgent(name="MyAgent")
-engine.register_agent(agent)
-
-# Build a workflow
-wf = Workflow(name="My Workflow", description="A sample workflow")
-task = Task(name="Step 1", agent_id=agent.agent_id, priority=TaskPriority.HIGH)
-wf.add_task(task)
-
-# Execute
-import asyncio
-result = asyncio.run(engine.execute(wf))
-print(result.status)
-```
-
-### Multi-LLM Routing
-
-```python
-from agentflow.llm import ModelGateway
-
-gateway = ModelGateway()
-response = await gateway.chat(
-    messages=[{"role": "user", "content": "Summarize this invoice."}],
-    preferred_model="gpt-4o",
-    fallback_models=["claude-3-haiku", "gemini-pro"]
-)
-```
-
-### Dynamic Tool Registry
-
-```python
-from agentflow.tools import ToolRegistry
-
-registry = ToolRegistry()
-
-@registry.register(name="fetch_invoice", description="Fetch invoice by ID")
-def fetch_invoice(invoice_id: str) -> dict:
-    # ... implementation
-    return {"id": invoice_id, "amount": 1500.00}
-
-result = await registry.invoke("fetch_invoice", {"invoice_id": "INV-001"})
-```
-
-### Human-in-the-Loop
-
-```python
-from agentflow.store import ApprovalQueue
-
-queue = ApprovalQueue()
-request_id = await queue.submit(
-    action="approve_payment",
-    payload={"vendor": "Acme Corp", "amount": 50000},
-    requester="finance-agent"
-)
-# Request waits until a human approves or rejects via the dashboard
-```
-
-## Running Tests
-
-```bash
+# Install dev dependencies
 pip install pytest pytest-asyncio
-pytest tests/ -v
+
+# Run tests
+pytest
 ```
 
-## Finance AP Demo
+## 📝 API Documentation
 
-The Finance Accounts Payable demo showcases an end-to-end multi-agent workflow that:
+Interactive API docs available at:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-1. Ingests incoming invoices from a queue
-2. Validates invoice data against PO records
-3. Routes exceptions to the appropriate approval tier
-4. Sends human-in-the-loop approval requests for high-value exceptions
-5. Logs all decisions with full audit trail
+## 🤝 Contributing
 
-See [`demos/finance_ap_demo.py`](demos/finance_ap_demo.py) and [`workflows/finance_ap_workflow.yaml`](workflows/finance_ap_workflow.yaml) for details.
+Contributions are welcome! Please:
+1. Fork the repo
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-## API Reference
+## 📄 License
 
-Once the server is running, visit:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+MIT License - see LICENSE file
 
-### Key Endpoints
+## 🙏 Acknowledgments
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/workflows` | Create a new workflow |
-| GET | `/workflows/{id}` | Get workflow status |
-| POST | `/workflows/{id}/execute` | Execute a workflow |
-| GET | `/agents` | List registered agents |
-| POST | `/approvals/{id}/approve` | Approve a pending request |
-| POST | `/approvals/{id}/reject` | Reject a pending request |
+- **Groq**: For ultra-fast LLM inference
+- **React Flow**: For the drag-and-drop workflow builder
+- **LiteLLM**: For unified LLM API
+- **FastAPI**: For the backend framework
 
-## Contributing
+## 📞 Support
 
-Contributions are welcome! Please open an issue first to discuss what you would like to change.
+- **Issues**: [GitHub Issues](https://github.com/loolaneshailesh/agentflow-framework/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/loolaneshailesh/agentflow-framework/discussions)
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes (`git commit -m 'Add my feature'`)
-4. Push to the branch (`git push origin feature/my-feature`)
-5. Open a Pull Request
+---
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgements
-
-- [LangGraph](https://github.com/langchain-ai/langgraph) - Workflow state machine engine
-- [LiteLLM](https://github.com/BerriAI/litellm) - Unified LLM API interface
-- [FastAPI](https://fastapi.tiangolo.com/) - High-performance REST API framework
-- [Pydantic](https://docs.pydantic.dev/) - Data validation and settings management
+**Built with ❤️ by [loolaneshailesh](https://github.com/loolaneshailesh)**
