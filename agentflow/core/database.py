@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from datetime import datetime
 from typing import Optional
 
@@ -46,11 +47,21 @@ def init_db():
     Base.metadata.create_all(bind=engine)
 
 
-# ─── ORM Models ──────────────────────────────────────────────────────────────
+# ─── ORM Models ──────────────────────────────────────────────────────────────────────
+
+class UserModel(Base):
+    __tablename__ = "users"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    username = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    full_name = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+
 
 class WorkflowModel(Base):
     __tablename__ = "workflows"
-
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     description = Column(Text, default="")
@@ -60,13 +71,11 @@ class WorkflowModel(Base):
     status = Column(String, default="created")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
     runs = relationship("WorkflowRunModel", back_populates="workflow", cascade="all, delete-orphan")
 
 
 class WorkflowRunModel(Base):
     __tablename__ = "workflow_runs"
-
     id = Column(String, primary_key=True)
     workflow_id = Column(String, ForeignKey("workflows.id"), nullable=False)
     status = Column(String, default="pending")
@@ -75,19 +84,17 @@ class WorkflowRunModel(Base):
     error = Column(Text, nullable=True)
     started_at = Column(DateTime, default=datetime.utcnow)
     finished_at = Column(DateTime, nullable=True)
-
     workflow = relationship("WorkflowModel", back_populates="runs")
 
 
 class ToolModel(Base):
     __tablename__ = "tools"
-
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False, unique=True)
     description = Column(Text, default="")
     tool_type = Column(String, default="custom")  # builtin | custom | llm
-    parameters = Column(JSON, default=dict)  # JSON Schema
-    code = Column(Text, nullable=True)  # Python code for dynamic tools
+    parameters = Column(JSON, default=dict)       # JSON Schema
+    code = Column(Text, nullable=True)            # Python code for dynamic tools
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -95,14 +102,13 @@ class ToolModel(Base):
 
 class AgentModel(Base):
     __tablename__ = "agents"
-
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     description = Column(Text, default="")
-    agent_type = Column(String, default="llm")  # llm | tool | router
+    agent_type = Column(String, default="llm")    # llm | tool | router
     model = Column(String, default="groq/llama3-70b-8192")
     system_prompt = Column(Text, default="You are a helpful AI agent.")
-    tools = Column(JSON, default=list)  # list of tool names
+    tools = Column(JSON, default=list)            # list of tool names
     config = Column(JSON, default=dict)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -111,37 +117,32 @@ class AgentModel(Base):
 
 class ConversationModel(Base):
     __tablename__ = "conversations"
-
     id = Column(String, primary_key=True)
     session_id = Column(String, nullable=False, index=True)
     agent_id = Column(String, nullable=True)
     workflow_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-
     messages = relationship("MessageModel", back_populates="conversation", cascade="all, delete-orphan")
 
 
 class MessageModel(Base):
     __tablename__ = "messages"
-
     id = Column(String, primary_key=True)
     conversation_id = Column(String, ForeignKey("conversations.id"), nullable=False)
-    role = Column(String, nullable=False)  # user | assistant | system | tool
+    role = Column(String, nullable=False)   # user | assistant | system | tool
     content = Column(Text, nullable=False)
     metadata_ = Column("metadata", JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
-
     conversation = relationship("ConversationModel", back_populates="messages")
 
 
 class ApprovalModel(Base):
     __tablename__ = "approvals"
-
     id = Column(String, primary_key=True)
     workflow_run_id = Column(String, nullable=True)
     tool_name = Column(String, nullable=False)
     inputs = Column(JSON, default=dict)
-    status = Column(String, default="pending")  # pending | approved | rejected
+    status = Column(String, default="pending")   # pending | approved | rejected
     requested_at = Column(DateTime, default=datetime.utcnow)
     resolved_at = Column(DateTime, nullable=True)
     resolver = Column(String, nullable=True)
