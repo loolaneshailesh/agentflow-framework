@@ -9,6 +9,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 import uuid
 
+from agentflow.core.database import SessionLocal, engine, Base, UserModel
+
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 # Password hashing
@@ -64,35 +66,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def _get_user_model():
-    """Lazily import User ORM model to avoid circular imports."""
-    from agentflow.core.database import Base
-    from sqlalchemy import Column, String, DateTime, Boolean
-
-    # Return existing mapper if already registered
-    if "users" in Base.metadata.tables:
-        for mapper in Base.registry.mappers:
-            if mapper.class_.__tablename__ == "users":
-                return mapper.class_
-
-    class User(Base):
-        __tablename__ = "users"
-        id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-        username = Column(String, unique=True, nullable=False)
-        email = Column(String, unique=True, nullable=False)
-        hashed_password = Column(String, nullable=False)
-        full_name = Column(String, nullable=True)
-        created_at = Column(DateTime, default=datetime.utcnow)
-        is_active = Column(Boolean, default=True)
-
-    return User
-
-
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     """Decode JWT and return the current user."""
-    from agentflow.core.database import SessionLocal
-    User = _get_user_model()
-
     credentials_exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -108,7 +83,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
     db = SessionLocal()
     try:
-        user = db.query(User).filter(User.email == email).first()
+        user = db.query(UserModel).filter(UserModel.email == email).first()
         if user is None:
             raise HTTPException(status_code=404, detail="User not found")
         return user
@@ -121,20 +96,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user: UserCreate):
     """Register a new user."""
-    from agentflow.core.database import SessionLocal, engine
-    User = _get_user_model()
-    from agentflow.core.database import Base
+    # Ensure users table exists
     Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
     try:
-        existing = db.query(User).filter(
-            (User.email == user.email) | (User.username == user.username)
+        existing = db.query(UserModel).filter(
+            (UserModel.email == user.email) | (UserModel.username == user.username)
         ).first()
         if existing:
             raise HTTPException(status_code=400, detail="Email or username already registered")
 
-        new_user = User(
+        new_user = UserModel(
             id=str(uuid.uuid4()),
             username=user.username,
             email=user.email,
@@ -154,14 +127,11 @@ async def register(user: UserCreate):
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Login and return JWT access token."""
-    from agentflow.core.database import SessionLocal
-    User = _get_user_model()
-
     db = SessionLocal()
     try:
         # Accept login by email OR username
-        user = db.query(User).filter(
-            (User.email == form_data.username) | (User.username == form_data.username)
+        user = db.query(UserModel).filter(
+            (UserModel.email == form_data.username) | (UserModel.username == form_data.username)
         ).first()
 
         if not user or not verify_password(form_data.password, user.hashed_password):
@@ -195,7 +165,6 @@ async def update_user_profile(
     current_user=Depends(get_current_user),
 ):
     """Update current user profile."""
-    from agentflow.core.database import SessionLocal
     db = SessionLocal()
     try:
         if full_name is not None:
